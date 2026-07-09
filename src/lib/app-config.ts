@@ -1,9 +1,25 @@
 import { Pool } from "pg";
 
+function parseDbUrl(url: string) {
+  try {
+    const u = new URL(url.replace(/^postgres(ql)?:\/\//, "http://"));
+    return {
+      host: u.hostname,
+      port: parseInt(u.port) || 5432,
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: u.pathname.replace(/^\//, ""),
+      ssl: { rejectUnauthorized: false },
+    };
+  } catch {
+    return { connectionString: url, ssl: { rejectUnauthorized: false } };
+  }
+}
+
 let _pool: Pool | null = null;
 function getConfigPool(): Pool | null {
   if (!process.env.DATABASE_URL) return null;
-  if (!_pool) _pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  if (!_pool) _pool = new Pool(parseDbUrl(process.env.DATABASE_URL));
   return _pool;
 }
 
